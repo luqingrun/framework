@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.3.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+       http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.3.xsd
+       http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <!-- redis 相关配置 -->
+    <bean id="poolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxIdle" value="${redis.maxIdle}"/>
+        <property name="maxWaitMillis" value="${redis.maxWait}"/>
+        <property name="testOnBorrow" value="${redis.testOnBorrow}"/>
+        <property name="maxTotal" value="100" />
+    </bean>
+
+
+    <bean id="shardedJedisPool" class="redis.clients.jedis.ShardedJedisPool"
+          destroy-method="destroy">
+        <constructor-arg ref="poolConfig"/>
+        <constructor-arg>
+            <list>
+                <bean class="redis.clients.jedis.JedisShardInfo">
+                    <constructor-arg value="${clusterRedisNodes1.host}"/>
+                    <constructor-arg type="int" value="${clusterRedisNodes1.port}"/>
+                </bean>
+                <bean class="redis.clients.jedis.JedisShardInfo">
+                    <constructor-arg value="${clusterRedisNodes2.host}"/>
+                    <constructor-arg type="int" value="${clusterRedisNodes2.port}"/>
+                </bean>
+                <bean class="redis.clients.jedis.JedisShardInfo">
+                    <constructor-arg value="${clusterRedisNodes3.host}"/>
+                    <constructor-arg type="int" value="${clusterRedisNodes3.port}"/>
+                </bean>
+                <bean class="redis.clients.jedis.JedisShardInfo">
+                    <constructor-arg value="${clusterRedisNodes4.host}"/>
+                    <constructor-arg type="int" value="${clusterRedisNodes4.port}"/>
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="redisCache" class="com.jiuxian.framework.cache.impl.RedisCacheServiceImpl" />
+
+    <!--
+        <bean id="clusterRedisNodes1"   class="org.springframework.data.redis.connection.RedisNode">
+            <constructor-arg value="${clusterRedisNodes1.host}" type="java.lang.String"/>
+            <constructor-arg value="${clusterRedisNodes1.port}" type="int" />
+        </bean>
+
+        <bean id="clusterRedisNodes2"   class="org.springframework.data.redis.connection.RedisNode">
+            <constructor-arg value="${clusterRedisNodes2.host}" type="java.lang.String"/>
+            <constructor-arg value="${clusterRedisNodes2.port}" type="int" />
+        </bean>
+        <bean id="clusterRedisNodes3"   class="org.springframework.data.redis.connection.RedisNode">
+            <constructor-arg value="${clusterRedisNodes3.host}" type="java.lang.String"/>
+            <constructor-arg value="${clusterRedisNodes3.port}" type="int" />
+        </bean>
+        <bean id="clusterRedisNodes4"   class="org.springframework.data.redis.connection.RedisNode">
+            <constructor-arg value="${clusterRedisNodes3.host}" type="java.lang.String"/>
+            <constructor-arg value="${clusterRedisNodes3.port}" type="int" />
+        </bean>
+
+        <bean id="redisClusterConfiguration"   class="org.springframework.data.redis.connection.RedisClusterConfiguration">
+            <property name="clusterNodes">
+                <set>
+                    <ref bean="clusterRedisNodes1"/>
+                    <ref bean="clusterRedisNodes2"/>
+                    <ref bean="clusterRedisNodes3"/>
+                    <ref bean="clusterRedisNodes4"/>
+                </set>
+            </property>
+        </bean>
+
+        <bean id="connectionFactory"
+              class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+            <constructor-arg ref="redisClusterConfiguration"/>
+            <constructor-arg ref="poolConfig" />
+        </bean>
+
+        <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+            <property name="connectionFactory" ref="connectionFactory"/>
+        </bean>
+
+        -->
+</beans>

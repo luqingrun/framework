@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.3.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+       http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.3.xsd
+       http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd">
+
+    <import resource="applicationContext-rabbit.xml"/>
+
+    <!--durable:是否持久化-->
+    <!--exclusive: 仅创建者可以使用的私有队列，断开后自动删除-->
+    <!--auto_delete: 当所有消费客户端连接断开后，是否自动删除队列-->
+    <rabbit:queue name="fuck_a" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue name="fuck_b" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue name="fuck_c" durable="true" auto-delete="false" exclusive="false" />
+
+    <!--rabbit:direct-exchange：定义exchange模式为direct，意思就是消息与一个特定的路由键完全匹配，才会转发。-->
+    <!--rabbit:binding：设置消息queue匹配的key-->
+    <rabbit:direct-exchange name="directExchange" durable="true" auto-delete="false"  id="directExchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="fuck_a" key="fuck_a"/>
+            <rabbit:binding queue="fuck_b" key="fuck_b"/>
+            <rabbit:binding queue="fuck_c" key="fuck_c"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+    <!--<rabbit:template id="directExchangeTemplate" connection-factory="connectionFactory" exchange="directExchange" message-converter="jsonMessageConverter"/>-->
+
+</beans>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.3.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx-4.3.xsd
+       http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache-4.3.xsd
+       http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+
+    <!-- 动态数据源的父类,其中配置的参数为子数据库的default值 -->
+    <bean id="parentDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
+          abstract="true">
+        <property name="driverClass">
+            <value>${jdbc.driverClassName}</value>
+        </property>
+        <property name="maxPoolSize">
+            <value>${jdbc.maxPoolSize}</value>
+        </property>
+        <property name="minPoolSize">
+            <value>${jdbc.minPoolSize}</value>
+        </property>
+        <property name="initialPoolSize">
+            <value>${jdbc.initialPoolSize}</value>
+        </property>
+        <property name="idleConnectionTestPeriod">
+            <value>${jdbc.idleConnectionTestPeriod}
+            </value>
+        </property>
+        <property name="maxIdleTime">
+            <value>${jdbc.maxIdleTime}</value>
+        </property>
+    </bean>
+
+    <bean id="testMaster" parent="parentDataSource">
+        <property name="jdbcUrl">
+            <value>${test.master.url}</value>
+        </property>
+        <property name="user">
+            <value>${test.master.username}</value>
+        </property>
+        <property name="password">
+            <value>${test.master.password}</value>
+        </property>
+    </bean>
+
+    <bean id="testSlave01" parent="parentDataSource">
+        <property name="jdbcUrl">
+            <value>${test.slave01.url}</value>
+        </property>
+        <property name="user">
+            <value>${test.slave01.username}</value>
+        </property>
+        <property name="password">
+            <value>${test.slave01.password}</value>
+        </property>
+    </bean>
+
+    <bean id="testRoleMaster" parent="parentDataSource">
+        <property name="jdbcUrl">
+            <value>${test_role.master.url}</value>
+        </property>
+        <property name="user">
+            <value>${test_role.master.username}</value>
+        </property>
+        <property name="password">
+            <value>${test_role.master.password}</value>
+        </property>
+    </bean>
+
+    <bean id="testRoleSlave01" parent="parentDataSource">
+        <property name="jdbcUrl">
+            <value>${test_role.slave01.url}</value>
+        </property>
+        <property name="user">
+            <value>${test_role.slave01.username}</value>
+        </property>
+        <property name="password">
+            <value>${test_role.slave01.password}</value>
+        </property>
+    </bean>
+
+    <!-- 读写管理(统一配置) -->
+    <bean id="dataSourceKey" class="com.jiuxian.framework.db.DataSourceKeyManager">
+        <property name="dataSourceKeyMap">
+            <map key-type="java.lang.String">
+                <!--key中的内容建议使用数据库的名字-->
+                <!--key中的内容与DAO中的annotation相同-->
+                <entry key="test">
+                    <bean class="com.jiuxian.framework.db.DataSourceKey">
+                        <property name="master" value="testMaster" />
+                        <property name="slaves" >
+                            <list>
+                                <value>testSlave01</value>
+                            </list>
+                        </property>
+                    </bean>
+                </entry>
+                <entry key="test_role">
+                    <bean class="com.jiuxian.framework.db.DataSourceKey">
+                        <property name="master" value="testRoleMaster" />
+                        <property name="slaves" >
+                            <list>
+                                <value>testRoleSlave01</value>
+                            </list>
+                        </property>
+                    </bean>
+                </entry>
+            </map>
+        </property>
+        <!--当DAO中的annotation未给出时生效-->
+        <property name="defaultSchema" value="test" />
+    </bean>
+
+    <!-- 动态数据源 -->
+    <bean id="dataSource" class="com.jiuxian.framework.db.DataSourceRouter">
+        <property name="targetDataSources">
+            <map key-type="java.lang.String">
+                <entry key="testMaster" value-ref="testMaster"/>
+                <entry key="testSlave01" value-ref="testSlave01"/>
+                <entry key="testRoleMaster" value-ref="testRoleMaster"/>
+                <entry key="testRoleSlave01" value-ref="testRoleSlave01"/>
+            </map>
+        </property>
+    </bean>
+
+    <!-- 事务配置 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="testMaster"></property>
+    </bean>
+
+    <!-- 事务管理拦截器 -->
+    <bean id="transactionInterceptor" class="org.springframework.transaction.interceptor.TransactionInterceptor">
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="query*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="is*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="find*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="get*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="load*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="count*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="list*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="check*">PROPAGATION_SUPPORTS,-Exception</prop>
+                <prop key="save*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="create*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="add*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="del*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="remove*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="upd*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="edit*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="reset*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="register*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="insert*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="generate*">PROPAGATION_REQUIRED,-Exception</prop>
+                <prop key="*">PROPAGATION_SUPPORTS,-Exception</prop>
+            </props>
+        </property>
+    </bean>
+
+
+    <!-- 动态数据源拦截器 -->
+    <bean id="dataSourceInterceptor" class="com.jiuxian.framework.db.DataSourceInterceptor">
+    </bean>
+
+    <!-- 根据Name匹配拦截器(数据源、事务) -->
+    <bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+        <property name="beanNames">
+            <list>
+                <value>*Mapper</value>
+            </list>
+        </property>
+        <property name="interceptorNames">
+            <list>
+                <!-- 事务管理的Interceptor -->
+                <value>dataSourceInterceptor</value>
+                <value>transactionInterceptor</value>
+            </list>
+        </property>
+    </bean>
+
+    <!-- 创建SqlSessionFactory，同时指定数据源 -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 扫描映射文件目录(扫描映射文件)，一般与pojo放到一个包中，省去了再mybatis.cfg.xml中mapper的配置 -->
+        <property name="mapperLocations" value="classpath*:com/jiuxian/**/dao/*.xml"/>
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+    </bean>
+
+    <!-- 配置映射器 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.jiuxian.**.dao"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+</beans>
